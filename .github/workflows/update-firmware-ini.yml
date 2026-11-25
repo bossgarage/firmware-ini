@@ -1,0 +1,40 @@
+name: Update firmware INI snapshots
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-firmware-ini
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download missing INI snapshots
+        run: python scripts/update_firmware_ini.py
+
+      - name: Commit and push new snapshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- BossECU_48 BossECU_Brain_F4 BossECU_Brain_H7
+          if git diff --cached --quiet; then
+            echo "No INI files changed."
+          else
+            git commit -m "Update firmware INI snapshots"
+            git push origin HEAD:main
+          fi
